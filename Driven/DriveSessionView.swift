@@ -462,13 +462,13 @@ final class DriveTracker: NSObject, ObservableObject, CLLocationManagerDelegate 
 
 @MainActor
 final class DriveLiveActivityManager: ObservableObject {
-#if canImport(ActivityKit)
+#if canImport(ActivityKit) && !targetEnvironment(simulator)
     private var activity: Activity<DriveActivityAttributes>?
     private var tickCount = 0
 #endif
 
     func start(duration: String, distanceKm: Double) {
-#if canImport(ActivityKit)
+#if canImport(ActivityKit) && !targetEnvironment(simulator)
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         let attributes = DriveActivityAttributes(name: "Driven")
         let state = DriveActivityAttributes.ContentState(
@@ -488,7 +488,7 @@ final class DriveLiveActivityManager: ObservableObject {
     }
 
     func updateIfNeeded(duration: String, distanceKm: Double) {
-#if canImport(ActivityKit)
+#if canImport(ActivityKit) && !targetEnvironment(simulator)
         guard let activity else { return }
         tickCount += 1
         if tickCount % 3 != 0 { return }
@@ -503,10 +503,11 @@ final class DriveLiveActivityManager: ObservableObject {
     }
 
     func end() {
-#if canImport(ActivityKit)
+#if canImport(ActivityKit) && !targetEnvironment(simulator)
         guard let activity else { return }
         Task {
-            await activity.end(ActivityContent(state: activity.content.state, staleDate: nil), dismissalPolicy: .immediate)
+            // Pass nil to avoid an XPC read on a connection that may already be winding down.
+            await activity.end(nil, dismissalPolicy: .immediate)
         }
         self.activity = nil
 #endif
