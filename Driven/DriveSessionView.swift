@@ -411,6 +411,7 @@ final class DriveTracker: NSObject, ObservableObject, CLLocationManagerDelegate 
     @Published private(set) var startDate: Date?
 
     private let locationManager = CLLocationManager()
+    private var locationSession: CLServiceSession?
     private var lastLocation: CLLocation?
 
     var elapsedDuration: TimeInterval {
@@ -432,9 +433,8 @@ final class DriveTracker: NSObject, ObservableObject, CLLocationManagerDelegate 
     }
 
     func startTracking() {
-        if locationManager.authorizationStatus == .notDetermined {
-            locationManager.requestWhenInUseAuthorization()
-        }
+        // CLServiceSession (iOS 17+) manages authorization; no manual request needed.
+        locationSession = CLServiceSession(authorization: .whenInUse)
         if startDate == nil {
             startDate = Date()
         }
@@ -443,15 +443,7 @@ final class DriveTracker: NSObject, ObservableObject, CLLocationManagerDelegate 
 
     func stopTracking() {
         locationManager.stopUpdatingLocation()
-    }
-
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        switch manager.authorizationStatus {
-        case .authorizedWhenInUse, .authorizedAlways:
-            manager.startUpdatingLocation()
-        default:
-            break
-        }
+        locationSession = nil
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
